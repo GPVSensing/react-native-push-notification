@@ -15,11 +15,14 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.core.app.NotificationCompat;
+
+import android.os.PowerManager;
 import android.util.Log;
 
 import com.facebook.react.bridge.ReadableMap;
@@ -189,7 +192,8 @@ public class RNPushNotificationHelper {
                 }
             }
 
-            int visibility = NotificationCompat.VISIBILITY_PRIVATE;
+            //GPVSensing App has default visibility public meaning "Show this notification in its entirety on all lockscreens"
+            int visibility = NotificationCompat.VISIBILITY_PUBLIC;
             final String visibilityString = bundle.getString("visibility");
 
             if (visibilityString != null) {
@@ -204,7 +208,7 @@ public class RNPushNotificationHelper {
                         visibility = NotificationCompat.VISIBILITY_SECRET;
                         break;
                     default:
-                        visibility = NotificationCompat.VISIBILITY_PRIVATE;
+                        visibility = NotificationCompat.VISIBILITY_PUBLIC;
                 }
             }
 
@@ -280,8 +284,9 @@ public class RNPushNotificationHelper {
             bundle.putBoolean("userInteraction", true);
             intent.putExtra("notification", bundle);
 
+            Uri soundUri = null;
             if (!bundle.containsKey("playSound") || bundle.getBoolean("playSound")) {
-                Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                 String soundName = bundle.getString("soundName");
                 if (soundName != null) {
                     if (!"default".equalsIgnoreCase(soundName)) {
@@ -326,7 +331,7 @@ public class RNPushNotificationHelper {
                     PendingIntent.FLAG_UPDATE_CURRENT);
 
             NotificationManager notificationManager = notificationManager();
-            checkOrCreateChannel(notificationManager);
+            checkOrCreateChannel(notificationManager, soundUri, visibility);
 
             notification.setContentIntent(pendingIntent);
 
@@ -388,6 +393,8 @@ public class RNPushNotificationHelper {
 
             Notification info = notification.build();
             info.defaults |= Notification.DEFAULT_LIGHTS;
+
+            this.wakeUpDevice();
 
             if (bundle.containsKey("tag")) {
                 String tag = bundle.getString("tag");
@@ -551,7 +558,7 @@ public class RNPushNotificationHelper {
     }
 
     private static boolean channelCreated = false;
-    private void checkOrCreateChannel(NotificationManager manager) {
+    private void checkOrCreateChannel(NotificationManager manager, Uri soundUri, int lockscreenVisibility) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
             return;
         if (channelCreated)
@@ -597,8 +604,35 @@ public class RNPushNotificationHelper {
         channel.setDescription(this.config.getChannelDescription());
         channel.enableLights(true);
         channel.enableVibration(true);
+        channel.setLockscreenVisibility(lockscreenVisibility);
+        channel.setShowBadge(true);
+
+        if (soundUri != null) {
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build();
+            channel.setSound(soundUri, audioAttributes);
+        } else {
+            channel.setSound(null, null);
+        }
 
         manager.createNotificationChannel(channel);
         channelCreated = true;
+    }
+
+    /**
+     * Checks if device is in an interactive state, if not wakeup
+     * the screen to show notification
+     */
+    private void wakeUpDevice() {
+        PowerManager pm = (PowerManager) this.context.getSystemService(Context.POWER_SERVICE);
+        boolean isScreenOn = pm.isScreenOn();
+
+        if (isScreenOn == false) {
+            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
+                    | PowerManager.ON_AFTER_RELEASE, "APP-LOCK:");
+            wl.acquire(10000);
+        }
     }
 }
