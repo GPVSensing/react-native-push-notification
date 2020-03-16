@@ -25,6 +25,7 @@ import androidx.core.app.NotificationCompat;
 import android.os.PowerManager;
 import android.util.Log;
 
+import com.dieam.reactnativepushnotification.service.WakeupService;
 import com.facebook.react.bridge.ReadableMap;
 
 import org.json.JSONArray;
@@ -626,13 +627,29 @@ public class RNPushNotificationHelper {
      * the screen to show notification
      */
     private void wakeUpDevice() {
-        PowerManager pm = (PowerManager) this.context.getSystemService(Context.POWER_SERVICE);
-        boolean isScreenOn = pm.isScreenOn();
-
-        if (isScreenOn == false) {
-            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
-                    | PowerManager.ON_AFTER_RELEASE, "APP-LOCK:");
-            wl.acquire(10000);
+//        PowerManager pm = (PowerManager) this.context.getSystemService(Context.POWER_SERVICE);
+//        boolean isScreenOn = pm.isScreenOn();
+//
+//        if (isScreenOn == false) {
+//            PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
+//                    | PowerManager.ON_AFTER_RELEASE, "APP-LOCK:");
+//            wl.acquire(10000);
+//        }
+        long triggerAt = System.currentTimeMillis() + 1000; // 1 sec
+        AlarmManager alarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, WakeupService.class);
+        PendingIntent pendingIntent = PendingIntent.getService(context,
+                "GPV-APP:NOTIFICATION".hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+            }
+        }
+        else
+        {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
         }
     }
 }
