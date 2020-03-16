@@ -32,7 +32,7 @@ public class WakeupService extends IntentService {
         Log.d(LOG_TAG, "onCreate");
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification notification = new Notification.Builder(this, "WakeupServiceChannel").build();
+            Notification notification = new Notification.Builder(this, App.WAKEUP_CHANNEL_ID).build();
             startForeground(1, notification);
         }
     }
