@@ -2,6 +2,8 @@ package com.dieam.reactnativepushnotification.service;
 
 import android.app.IntentService;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.Context;
 import android.os.Build;
@@ -15,6 +17,8 @@ import android.util.Log;
 public class WakeupService extends IntentService {
 
     private static final String LOG_TAG = WakeupService.class.getSimpleName();
+    private static final String WAKEUP_CHANNEL_ID = "WakeupService Channel";
+    private NotificationChannel wakeupChannel;
 
     /**
      * Constructor comment
@@ -32,7 +36,16 @@ public class WakeupService extends IntentService {
         Log.d(LOG_TAG, "onCreate");
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification notification = new Notification.Builder(this, App.WAKEUP_CHANNEL_ID).build();
+            if(wakeupChannel == null ) {
+                wakeupChannel = new NotificationChannel(
+                        WAKEUP_CHANNEL_ID,
+                        "Wakeup Service Channel",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                );
+                NotificationManager manager = getSystemService(NotificationManager.class);
+                manager.createNotificationChannel(wakeupChannel);
+            }
+            Notification notification = new Notification.Builder(this, WAKEUP_CHANNEL_ID).build();
             startForeground(1, notification);
         }
     }

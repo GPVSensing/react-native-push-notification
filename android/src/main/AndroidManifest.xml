@@ -5,8 +5,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <application
-        android:name=".service.App">
+    <application>
         <service
             android:name=".service.WakeupService"
             android:enabled="true"/>
