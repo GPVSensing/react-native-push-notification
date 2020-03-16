@@ -28,19 +28,6 @@ public class WakeupService extends IntentService {
         // Start redeliver intent, in case service is killed
         // it would be restarted due to this flag !
         setIntentRedelivery(true);
-        initNotificationChannel();
-    }
-
-    private void initNotificationChannel() {
-        if(wakeupChannel == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            wakeupChannel = new NotificationChannel(
-                    WAKEUP_CHANNEL_ID,
-                    "Wakeup Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(wakeupChannel);
-        }
     }
 
     @Override
@@ -49,6 +36,15 @@ public class WakeupService extends IntentService {
         Log.d(LOG_TAG, "onCreate");
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if(wakeupChannel == null) {
+                wakeupChannel = new NotificationChannel(
+                        WAKEUP_CHANNEL_ID,
+                        "Wakeup Service Channel",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                );
+                NotificationManager manager = getSystemService(NotificationManager.class);
+                manager.createNotificationChannel(wakeupChannel);
+            }
             Notification notification = new Notification.Builder(this, WAKEUP_CHANNEL_ID).build();
             startForeground(1, notification);
         }
